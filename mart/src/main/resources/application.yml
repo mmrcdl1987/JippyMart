@@ -1,0 +1,44 @@
+server:
+  port: 9086
+
+razorpay:
+  key-id: rzp_live_fMP9Bnr5KdFkcY
+  key-secret: 0E7v846FPERj6l05px41g2TW
+
+spring:
+  application:
+  name: mart
+
+  datasource:
+    URL: jdbc:postgresql://187.127.156.147:5437/mart_db
+    USERNAME: mart_user
+    PASSWORD: mart_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        default_schema: jippy_mart
+        ddl-auto: update
+    show-sql: true
+
+  # Secondary DB for External Users
+  datasource.external-user:
+    url: jdbc:mysql://ec2-18-60-239-195.ap-south-2.compute.amazonaws.com:3306/jippymart
+    username: jippymart
+    password: NEW_PASSWORD
+#    url: jdbc:mysql://localhost:3306/order_automation_flow
+#    username: root
+#    password: Teja@574
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  datasource.jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update # Options: none, validate, update, create, create-drop
+    show-sql: true     # Prints SQL queries in the console log (useful for debugging)
+    properties:
+      hibernate:
+        format_sql: true # Pretty prints the SQL statements in console
+        physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
