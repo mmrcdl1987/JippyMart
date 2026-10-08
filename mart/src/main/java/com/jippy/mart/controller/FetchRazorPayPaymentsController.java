@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
@@ -28,13 +29,13 @@ public class FetchRazorPayPaymentsController {
 
     private final FetchRazorPayPaymentsService fetchRazorPayPaymentsService;
 
-//    @Scheduled(cron = "*/10 * * * *")
+    @Scheduled(cron = "*/10 * * * * *")
     @GetMapping("/fetchRazorPayPayments")
     public void fetchAndCreateOrders() throws Exception {
         RazorpayClient razorpay = new RazorpayClient(razorPayKeyId, razorPayKeySecret);
 
         JSONObject params = new JSONObject();
-        params.put("count", 1); // Number of records to fetch
+        params.put("count", 10); // Number of records to fetch
         // Optional filters: "from" and "to" epoch timestamps
 
         List<Payment> payments = razorpay.payments.fetchAll(params);
@@ -47,7 +48,7 @@ public class FetchRazorPayPaymentsController {
 
             // 1. Amount (Convert paise to Rupees if required: 20000 paise = ₹200.00)
             Integer amountInPaise = payment.get("amount");
-            float amountInRupees = (float) (amountInPaise / 100.0);
+            BigDecimal amountInRupees = BigDecimal.valueOf(amountInPaise, 2);
 
             // 2. Customer Details
             String email = getNullableString(payment, "email");

@@ -22,8 +22,8 @@ public class OrderRepository {
         String sql = """
             INSERT INTO restaurant_orders (
                 id, author, authorID,  createdAt,
-                payment_method, products,  status, toPayAmount, txn_id, vendorID
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                payment_method, products,  status, toPayAmount, txn_id, vendorID, taxSetting
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
 
         try{
@@ -42,7 +42,8 @@ public class OrderRepository {
                     order.getStatus(),
                     order.getToPayAmount(),
                     order.getTxn_id(),
-                    order.getVendorID()
+                    order.getVendorID(),
+                    order.getTaxSetting()
             );
         } catch (Exception e) {
             throw new RuntimeException("Error serializing products DTO to JSON", e);

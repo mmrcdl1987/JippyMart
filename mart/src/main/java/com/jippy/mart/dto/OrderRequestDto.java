@@ -15,7 +15,7 @@ public class OrderRequestDto {
     private Float toPayAmount;
     private String txn_id;
     private String vendorID;
-    private String tax_setting;
+    private String taxSetting;
 
 
 }

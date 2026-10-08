@@ -3,12 +3,15 @@ package com.jippy.mart.serviceImpl;
 import com.jippy.mart.dto.OrderRequestDto;
 import com.jippy.mart.dto.ProductsDto;
 import com.jippy.mart.repository.ExternalUserRepository;
+import com.jippy.mart.repository.MartProductRepository;
+import com.jippy.mart.repository.MartProductRepository.ProductPriceMatch;
 import com.jippy.mart.repository.OrderRepository;
 import com.jippy.mart.service.FetchRazorPayPaymentsService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -19,10 +22,11 @@ public class FetchRazorPayPaymentsServiceImpl implements FetchRazorPayPaymentsSe
 
     private final ExternalUserRepository externalUserRepository;
     private final OrderRepository orderRepository;
+    private final MartProductRepository martProductRepository;
 
 
     @Override
-    public void fetchRazorPayPaymentsAndCreateOrder(String paymentId, float amountInRupees, String email,
+    public void fetchRazorPayPaymentsAndCreateOrder(String paymentId, BigDecimal amountInRupees, String email,
             String contact, String bankRrn,String upiId) {
 
         // 1. Check if email or contact is provided
@@ -36,6 +40,14 @@ public class FetchRazorPayPaymentsServiceImpl implements FetchRazorPayPaymentsSe
             log.info("Order for txn_id {} already exists. Skipping creation.", paymentId);
             return; // Skip to next payment
         }
+
+        var productMatch = martProductRepository.findProductForPayment(amountInRupees);
+        if (productMatch.isEmpty()) {
+            log.warn("Skipping order for payment {}: no mart product has a minimum price at or below {}",
+                    paymentId, amountInRupees);
+            return;
+        }
+        ProductPriceMatch product = productMatch.get();
 
         String firebaseId = UUID.randomUUID().toString();
 
@@ -52,37 +64,32 @@ public class FetchRazorPayPaymentsServiceImpl implements FetchRazorPayPaymentsSe
             return;
         }
 
-        // 4. Create Order using the retrieved or newly generated userId
-        if (userId != null) {
-            createOrder(userId, paymentId,amountInRupees, email, contact, bankRrn);
-        }
+        createOrder(userId, paymentId, amountInRupees, product);
     }
 
-    private void createOrder(String userId, String paymentId, float amountInRupees, String email, String contact, String bankRrn) {
+    private void createOrder(String userId, String paymentId, BigDecimal amountInRupees,
+            ProductPriceMatch product) {
         String orderId = getOrderId();
 
         log.info("Creating order with ID: {} for User ID: {} and Payment ID: {}", orderId, userId, paymentId);
 
-        // Assuming you have an Order entity and repository to save the order
         OrderRequestDto order = new OrderRequestDto();
         order.setId(orderId);
         order.setAuthorID(userId);
         order.setPayment_method(paymentId);
-        order.setToPayAmount(amountInRupees);
+        order.setToPayAmount(amountInRupees.floatValue());
         order.setTxn_id(paymentId);
         order.setStatus("Order Completed");
-        order.setTax_setting("3");
+        order.setTaxSetting(product.taxAmount().stripTrailingZeros().toPlainString());
         order.setCreatedAt(Instant.now().toString());
-        //change this to dynamic
-        Integer vendorId = 134; // Replace with actual logic to determine vendor ID
-        order.setVendorID(vendorId.toString());
+        order.setVendorID(Integer.toString(product.outletId()));
 
         ProductsDto productsDto = new ProductsDto();
-        productsDto.setProductName("vegetables combo");
-        productsDto.setProductId(1);
-        productsDto.setPrice(100.0f);
+        productsDto.setProductName(product.productName());
+        productsDto.setProductId(product.productId());
+        productsDto.setPrice(product.productPrice().floatValue());
         productsDto.setQuantity(1);
-        productsDto.setSubcategoryId(1);
+        productsDto.setSubcategoryId(product.subcategoryId());
 
         order.setProductsDto(productsDto);
 
